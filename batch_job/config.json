@@ -1,0 +1,10 @@
+{
+    "db": {
+        "host": "192.168.31.215",
+        "port": 5432,
+        "dbname": "postgres",
+        "user": "postgres",
+        "password": "westlife"
+    },
+    "ts_codes": ["000066.SZ", "000001.SZ"]
+}

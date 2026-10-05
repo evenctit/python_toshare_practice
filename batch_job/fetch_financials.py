@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
-# 批处理任务：通过 tushare 拉取股票 000066 的利润表、资产负债表、现金流量表，
+# 批处理任务：通过 tushare 拉取配置的股票列表的利润表、资产负债表、现金流量表，
 # 在 PostgreSQL 的 tushare schema 下创建对应的三张表并把数据全量写入。
+# 数据库连接配置和股票代码列表统一在 config.json 中配置。
+import json
+import os
+
 import pandas as pd
 import psycopg2
 import tushare as ts
 
+# 配置文件路径（与本脚本同目录）
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+# 读取配置文件
+with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+    CONFIG = json.load(f)
+
 # tushare pro 接口的 token
 TUSHARE_TOKEN = '163cf77f52eeee719c54184f8e39f0bc9b219df7c1066f55f5fc6e1a'
-# 股票代码，SZ 后缀表示深圳交易所
-TS_CODE = '000066.SZ'
-
-# PostgreSQL 连接配置
-DB_CONFIG = dict(
-    host='192.168.31.215',
-    port=5432,
-    dbname='postgres',
-    user='postgres',
-    password='westlife',
-)
+# 股票代码列表（config.json 的 ts_codes 数组，SZ 后缀表示深圳交易所）
+TS_CODES = CONFIG['ts_codes']
+# 数据库连接配置（config.json 的 db 字段）
+DB_CONFIG = CONFIG['db']
 # 数据库 schema 名称
 SCHEMA = 'tushare'
 
@@ -67,6 +70,16 @@ def save_to_db(conn, table: str, df: pd.DataFrame) -> None:
     conn.commit()
 
 
+def fetch_report(pro, api_name: str) -> pd.DataFrame:
+    # 按配置的股票代码列表逐个拉取接口数据并合并成一个 DataFrame
+    dfs = []
+    for ts_code in TS_CODES:
+        df = getattr(pro, api_name)(ts_code=ts_code)
+        print('接口 %s 股票 %s 返回 %d 行, %d 列' % (api_name, ts_code, df.shape[0], df.shape[1]))
+        dfs.append(df)
+    return pd.concat(dfs, ignore_index=True)
+
+
 def main():
     # 设置 tushare pro 的 token 并建立接口连接
     ts.set_token(TUSHARE_TOKEN)
@@ -80,8 +93,8 @@ def main():
 
     # 依次拉取三张财务报表并保存
     for api_name, table in REPORTS:
-        df = getattr(pro, api_name)(ts_code=TS_CODE)
-        print('接口 %s 返回 %d 行, %d 列' % (api_name, df.shape[0], df.shape[1]))
+        df = fetch_report(pro, api_name)
+        print('接口 %s 合并后共 %d 行, %d 列' % (api_name, df.shape[0], df.shape[1]))
         save_to_db(conn, table, df)
         print('表 %s.%s 已重建并写入 %d 行' % (SCHEMA, table, df.shape[0]))
 
