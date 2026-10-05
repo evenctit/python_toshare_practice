@@ -1,0 +1,22 @@
+# Kubernetes Job：运行一次 daily 日线行情拉取入库验证任务
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tushare-daily-000066
+  labels:
+    app: tushare-financial
+spec:
+  # 失败最多重试 2 次
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: tushare-financial
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: tushare-daily
+          image: tushare-financial:v1
+          imagePullPolicy: IfNotPresent
+          # 覆盖默认 CMD，运行 daily 验证脚本
+          command: ["python", "fetch_daily.py"]

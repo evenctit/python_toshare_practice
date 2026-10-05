@@ -6,6 +6,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
-COPY fetch_financials.py .
+COPY fetch_financials.py fetch_daily.py ./
 
 CMD ["python", "fetch_financials.py"]
