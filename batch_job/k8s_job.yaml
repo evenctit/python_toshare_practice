@@ -1,0 +1,20 @@
+# Kubernetes Job：运行一次 tushare 财务报表拉取入库任务
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tushare-financial-000066
+  labels:
+    app: tushare-financial
+spec:
+  # 失败最多重试 2 次
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: tushare-financial
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: tushare-financial
+          image: tushare-financial:v1
+          imagePullPolicy: IfNotPresent
